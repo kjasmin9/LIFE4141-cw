@@ -1,0 +1,66 @@
+#FST calculation in UBUNTU using vcftools
+
+#installation of vcf tools in UBUNTU 
+sudo apt install vcf-tools
+
+#create separate txt files for each popualiton from vcf.gz file contianing all population samples
+vcf-query -l LAB_NEN_ODN.clean_BI.ann.3mbChr5.vcf.gz | grep 'LAB' > LAB_population.txt
+vcf-query -l LAB_NEN_ODN.clean_BI.ann.3mbChr5.vcf.gz | grep 'NEN' > NEN_population.txt
+vcf-query -l LAB_NEN_ODN.clean_BI.ann.3mbChr5.vcf.gz | grep 'ODN' > ODN_population.txt
+#check teh files for each using nano
+nano LAB_population.txt
+
+#conduct fst analysis, put output in new file using --out, window and window step size: 5000, LAB vs NEN
+vcftools --gzvcf  LAB_NEN_ODN.clean_BI.ann.3mbChr5.vcf.gz --max-missing 0.8 --maf 0.05 --weir-fst-pop LAB_population.txt --weir-fst-pop NEN_population.txt --fst-window-size 5000 --fst-window-step 5000 --out LAB_vs_NEN_pops_5kb
+
+
+sort -k (column_num) file_name
+# to count num of lines in each SFT analysis file and calculate 1%
+#repeat with all popualiton contrasts
+sort -rk 5 LAB_vs_NEN_pops_2kb.windowed.weir.fst | wc -l
+
+sort -rk 5 LAB_vs_NEN_pops_3kb.windowed.weir.fst | wc -l
+
+sort -rk 5 LAB_vs_NEN_pops_4kb.windowed.weir.fst | wc -l
+
+sort -rk 5 LAB_vs_NEN_pops_5kb.windowed.weir.fst | wc -l
+
+sort -rk 5 LAB_vs_NEN_pops_0.5kb.windowed.weir.fst | wc -l
+
+
+# sort by descending order of FST (5th column) 
+# sort files by excluding low values presented with exponent (i.e., 7.09^-17)
+# process of counting lines for each file, then adding the top lines into a new bed file
+
+sort -rk5,5gr LAB_vs_NEN_pops_1kb.windowed.weir.fst | head -n 27 > LAB_vs_NEN_1kb.bed
+
+sort -rk5,5gr LAB_vs_ODN_pops_1kb.windowed.weir.fst | head -n 27 > LAB_vs_ODN_1kb.bed
+
+sort -rk5,5gr NEN_vs_ODN_pops_1kb.windowed.weir.fst | head -n 27 > NEN_vs_ODN_1kb.bed
+
+
+
+#install bedtools
+#to run bedtools
+conda activate bedtools
+#overlap 
+bedtools intersect -a LAB_vs_NEN_1kb.bed -b C_excelsa_V5_braker2_wRseq.gff3 -wa -wb > LAB_vs_NEN_1kb_intersect.bed
+
+
+# get the intersected genes into new file 
+grep gene LAB_vs_NEN_1kb_intersect.bed >  LAB_vs_NEN_1kb_intersect_genes.tsv
+grep gene LAB_vs_ODN_1kb_intersect.bed >  LAB_vs_ODN_1kb_intersect_genes.tsv
+grep gene NEN_vs_ODN_1kb_intersect.bed >  NEN_vs_ODN_1kb_intersect_genes.tsv
+
+
+#to remove 'ID=' from the gene id of all final files
+
+sed 's/ID=//g' NEN_vs_ODN_1kb_intersect_genes.tsv > new_file.tsv
+mv new_file.tsv  NEN_vs_ODN_1kb_intersect_genes.tsv 
+
+sed 's/ID=//g' LAB_vs_ODN_1kb_intersect_genes.tsv > new_file.tsv
+mv new_file.tsv LAB_vs_ODN_1kb_intersect_genes.tsv
+
+sed 's/ID=//g' LAB_vs_NEN_1kb_intersect_genes.tsv > new_file.tsv
+mv new_file.tsv LAB_vs_NEN_1kb_intersect_genes.tsv
+
